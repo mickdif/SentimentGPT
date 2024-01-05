@@ -1,6 +1,6 @@
 from openai import OpenAI
 
-MY_KEY = "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"
+MY_KEY = ""
 
 class myChatGPT:
     def __init__(self, company_name, stock_sym):
