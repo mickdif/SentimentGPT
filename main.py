@@ -1,39 +1,31 @@
-from openai import OpenAI
-import pandas as pd
-from finvizfinance.quote import finvizfinance
-from finvizfinance.news import News
+import myChatGPT
+import newsMethods
 
-titolo = "TESLA"
-stock = finvizfinance('tsla')
-news_df = stock.ticker_news()
+COMPANY_NAME = "Apple"
+STOCK_SYMBOL = "AAPL"
 
-news_df.to_csv("qui.csv")
+# scarica news da finviz, restituisce un pandas dataframe
+news_df = newsMethods.get_news(STOCK_SYMBOL)
+title_df = news_df.Title # solo i titoli
+url_df = news_df.Link # solo gli url
 
-titles_df = news_df.Title
-titles_df.to_csv("titoli.csv")
+# testo da far precedere a tutti gli articoli per spiegare a ChatGPT cosa fare
+intro = "ti fornisco in inglese una notizia di finanza e voglio una sentiment analisys del test a riguardo del titolo di " + COMPANY_NAME + " rappresentato con un valore reale compreso tra -1 e 1. Isola all'interno del testo solo le parti che parlano di " + COMPANY_NAME + ", non mi interessano le altre aziende coinvolte. Voglio solo ed esclusivamente il numero compreso fra -1 e 1 come risposta, non parole. Ecco la notizia:\n"
 
-OPENAI_API_KEY = "KEY"
-client = OpenAI(api_key=OPENAI_API_KEY)
+intro_debug = "ti fornisco in inglese una notizia di finanza e voglio una sentiment analisys del test a riguardo del titolo di " + COMPANY_NAME + " rappresentato con un valore reale compreso tra -1 e 1. Isola all'interno del testo solo le parti che parlano di " + COMPANY_NAME + ", non mi interessano le altre aziende coinvolte. Rispondimi con la valutazione fra -1 e 1 e con una brevissima spiegazione. Ecco la notizia: \n"
 
-intro = "ti fornisco in inglese una notizia di finanza e voglio una sentiment analisys del test a riguardo del titolo di " + titolo + " rappresentato con un valore reale compreso tra -1 e 1. VOGLIO SOLO ED ESCLUSIVAMETE IL NUMERO, NO PAROLE. "
+# definizione oggetto di classe myChatGPT
+interpreter = myChatGPT.myChatGPT(company_name=COMPANY_NAME, stock_sym=STOCK_SYMBOL)
 
-stream = client.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[{"role": "user", "content": intro}],
-    stream=True,
-)
-
-i=0
-while i<5:
+for i in range(3):
+    url = url_df[i]
+    text = newsMethods.extract_text(url) # ottiene il testo
+    print (title_df[i]) # stampa il solo titolo dell'articolo
+    # print(text) # stampa tutto il testo: puo' essere molto lungo
     
-    stream = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": intro + titles_df[i]}],
-        stream=True,)
-    print("\n", titles_df[i])    
-    for chunk in stream:
-        if chunk.choices[0].delta.content is not None:
-            #print(titles_df[i])
-            print(chunk.choices[0].delta.content, end="")
-                
-    i+=1
+    message = intro_debug + text # assembla il messaggio da dare a ChatGPT
+    interpreter.send(message=message) # invia a ChatGPT
+    print("\n")
+    
+# della stampa della sentiment si occupa la classe myChatGPT
+# attenzione perche' non salva i risultati su file, vanno copiati a mano se si vogliono salvare!
